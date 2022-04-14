@@ -1,0 +1,49 @@
+pipeline {
+    agent {
+        dockerfile {
+            filename "jenkins-dockerfile/Dockerfile"
+            additionalBuildArgs '--build-arg USER=Krishna' 
+        }
+    }
+    triggers { 
+        pollSCM('*/10 * * * 1-5') 
+    }
+    parameters { //interactive input
+        choice(name: 'USERNAME', choices: ['Admin','krishna'], description: 'Select the user name')
+    }
+    options { 
+        skipStagesAfterUnstable()
+        retry (2) // retries 2 time if the pipeline fails and then stops
+    }
+    stages {
+        stage('maven') {
+            when {
+                expression { //this stage is executed only when it is run by Admin
+                    params.USERNAME == 'Admin'
+                }
+            }
+            input { //seeks approval for build stage to execute
+                message "should we continue?"
+                ok "Yes, go ahead"
+            }
+            steps {
+               sh 'mvn -version'
+            }
+        }
+        stage('role') {
+            steps {
+                echo "Hello ${params.USERNAME}"
+            }
+        }
+    }
+    post { //post-build step
+        success { //sends mail notification if success
+            mail (body: "${env.BUILD_URL} is successful", subject: 'Test mail', to: 'awsdevopsmavericks@gmail.com')
+        }
+        failure {// sends mail notification if failed
+            mail (body: "${env.BUILD_URL} is failed", 
+            subject: 'Test mail', 
+            to: 'awsdevopsmavericks@gmail.com')
+        }
+    }
+}
