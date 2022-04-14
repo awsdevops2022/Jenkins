@@ -1,4 +1,3 @@
-
 FROM ubuntu AS checkout
 RUN apt-get update -y \
  && apt-get upgrade -y \
